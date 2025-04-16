@@ -1,0 +1,12 @@
+{
+    "name": "Living NFT #1",
+    "description": "This NFT evolves based on real-world data.",
+    "image": "ipfs://TO_BE_REPLACED",
+    "properties": {
+      "weather": "Clear",
+      "ethPrice": "$3,000",
+      "season": "Spring",
+      "level": 1
+    }
+  }
+  

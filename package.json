@@ -1,0 +1,22 @@
+{
+  "name": "livingnft",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@zoralabs/coins-sdk": "^0.0.8",
+    "@zoralabs/protocol-sdk": "^0.13.5",
+    "axios": "^1.8.4",
+    "dotenv": "^16.5.0",
+    "ethers": "^6.13.5",
+    "ipfs-http-client": "^60.0.1",
+    "openai": "^4.94.0",
+    "viem": "^2.27.0"
+  }
+}
