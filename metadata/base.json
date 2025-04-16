@@ -1,7 +1,7 @@
 {
     "name": "Living NFT #1",
     "description": "This NFT evolves based on real-world data.",
-    "image": "ipfs://TO_BE_REPLACED",
+    "image": "https://gateway.pinata.cloud/ipfs/QmdhbvNzNDsFXqGEc8toEKtx4s24hELSGEp5uTTNSJDU1w",
     "properties": {
       "weather": "Clear",
       "ethPrice": "$3,000",

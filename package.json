@@ -15,7 +15,9 @@
     "axios": "^1.8.4",
     "dotenv": "^16.5.0",
     "ethers": "^6.13.5",
-    "ipfs-http-client": "^60.0.1",
+    "form-data": "^4.0.2",
+    "ipfs-core": "^0.18.1",
+    "node-fetch": "^3.3.2",
     "openai": "^4.94.0",
     "viem": "^2.27.0"
   }
