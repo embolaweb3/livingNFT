@@ -2,6 +2,17 @@ import axios from 'axios'
 import * as dotenv from 'dotenv'
 dotenv.config()
 
+export async function getETHPriceUSD(): Promise<number> {
+    const res = await axios.get("https://api.coingecko.com/api/v3/simple/price", {
+      params: {
+        ids: "ethereum",
+        vs_currencies: "usd",
+      },
+    });
+  
+    return res.data.ethereum.usd;
+  }
+  
 export async function getWeather(city = "Lagos"): Promise<string> {
     const res = await axios.get("https://api.openweathermap.org/data/2.5/weather", {
       params: {
