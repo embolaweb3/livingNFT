@@ -82,15 +82,24 @@ export default function Home() {
       writeContract(writeParams, {
         onSuccess: (data) => {
           setStatus('done');
-          localStorage.setItem('lastCreatedCoin', data);
+        
+          // Get previous created coins
+          const existingCreatedCoins = JSON.parse(localStorage.getItem('createdCoins') || '[]') as Address[];
+        
+          // Add new created coin
+          const updatedCreatedCoins = [...existingCreatedCoins, data as Address];
+        
+          // Save back
+          localStorage.setItem('createdCoins', JSON.stringify(updatedCreatedCoins));
+        
           toast.success(
             <div>
               🚀 Coin created!
               <br />
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(data)
-                  toast.info('Address copied to clipboard!')
+                  navigator.clipboard.writeText(data);
+                  toast.info('Address copied to clipboard!');
                 }}
                 className="text-blue-500 underline"
               >
@@ -98,7 +107,6 @@ export default function Home() {
               </button>
             </div>
           );
-          
         },
         onError: (error) => {
           console.error('Contract write error:', error);
