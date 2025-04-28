@@ -1,15 +1,13 @@
 "use client"
 import { useState } from 'react';
-import { updateCoinMetadata } from '../utils/updateCoinMetadata';
+import { waitForTransactionReceipt } from 'wagmi/actions';
 import { getWeather, getETHPriceUSD } from '../utils/dataFetchers';
-import { generateImage } from '../utils/imageGen';
-import { Readable } from 'stream';
+import { config } from '../utils/wagmiConfig';
 import Navbar from '../components/Header';
 import { Address } from 'viem';
 import { base } from 'viem/chains';
 
 import { updateCoinURICall } from "@zoralabs/coins-sdk";
-import { useContractWrite, useSimulateContract } from "wagmi";
 import { useAccount, useWriteContract } from 'wagmi';
 
 
@@ -49,7 +47,7 @@ export default function Evolve() {
       body: fileData,
     }).then(res => res.json());
 
-    const imageRes = await uploadRes.json();
+    const imageRes = await uploadRes
 
     if (imageRes?.pinataURL) {
 
@@ -85,9 +83,15 @@ export default function Evolve() {
       };
 
       writeContract(writeParams,{
-        onSuccess : (txHash)=>{
+        onSuccess : async(txHash)=>{
           console.log(txHash)
           setStatus('done');
+          const receipt = await waitForTransactionReceipt(config,{
+            hash: txHash,
+            chainId:  base.id,  
+          });
+
+          console.log(receipt)
         },
         onError: (error) => {
           console.error('Contract write error:', error);

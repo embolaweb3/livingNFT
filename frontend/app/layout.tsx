@@ -1,4 +1,3 @@
-// app/layout.tsx
 'use client';
 
 import '@rainbow-me/rainbowkit/styles.css';

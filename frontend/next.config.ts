@@ -3,7 +3,9 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 
 const nextConfig: NextConfig = {
-  async headers() {
+  experimental: {
+    turbo: false,
+  },  async headers() {
     return [
       {
         source: '/api/:path*',
