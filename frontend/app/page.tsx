@@ -83,7 +83,7 @@ export default function Home() {
       writeContract(writeParams, {
         onSuccess: (data) => {
           setStatus('done');
-          localStorage.setItem('lastCreatedCoin', data.contractAddress);
+          localStorage.setItem('lastCreatedCoin', data);
           toast.success(
             <div>
               🚀 Coin created!

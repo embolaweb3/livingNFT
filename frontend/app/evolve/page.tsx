@@ -17,9 +17,22 @@ export default function Evolve() {
     const ethPrice = await getETHPriceUSD();
     const level = 2;
 
-    const imageBuffer = await generateImage({ weather, ethPrice, level });
+    const imageGenRes = await fetch('/api/generate-image',{
+      method : 'POST',
+      headers : {'Content-type' : 'application/json'},
+      body : JSON.stringify({weather,ethPrice,level})
+    })
+
+    if (!imageGenRes.ok) {
+      console.error('Image generation failed');
+      setStatus('idle');
+      return;
+    }
+    
+    const { imageBuffer } = await imageGenRes.json();
+
     const fileData = new FormData();
-    fileData.append('file', new Blob([imageBuffer]), 'evolved-image.png');
+    fileData.append('file', new Blob([new Uint8Array(imageBuffer)]), 'evolved-image.png');
     
     const imageRes = await fetch('/api/upload-file', {
       method: 'POST',
