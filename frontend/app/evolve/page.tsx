@@ -91,7 +91,16 @@ export default function Evolve() {
             chainId:  base.id,  
           });
 
-          console.log(receipt)
+          // Get previous coins
+          const existingCoins = JSON.parse(
+            localStorage.getItem("evolvedCoins") || "[]"
+          ) as Address[];
+
+          // Add new coin
+          const updatedCoins = [...existingCoins, receipt.to as Address];
+
+          // Save back
+          localStorage.setItem("evolvedCoins", JSON.stringify(updatedCoins));
         },
         onError: (error) => {
           console.error('Contract write error:', error);
