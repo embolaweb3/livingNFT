@@ -6,10 +6,16 @@ import { generateImage } from '../utils/imageGen';
 import { Readable } from 'stream';
 import Navbar from '../components/Header';
 import { Address } from 'viem';
+import { updateCoinURICall } from "@zoralabs/coins-sdk";
+import { useContractWrite, useSimulateContract } from "wagmi";
+import { useAccount, useWriteContract } from 'wagmi';
+
 
 export default function Evolve() {
   const [coinAddress, setCoinAddress] = useState('');
   const [status, setStatus] = useState('idle');
+
+    const { writeContract } = useWriteContract();
 
   const handleEvolve = async () => {
     setStatus('evolving');
@@ -59,8 +65,31 @@ export default function Evolve() {
       const metaRes = await metaUpload.json();
 
       if (metaRes?.pinataURL) {
-        await updateCoinMetadata({ coin: coinAddress as Address, newURI: metaRes.pinataURL });
-        setStatus('done');
+
+        // Define update parameters
+      const updateParams = { coin: coinAddress as Address, newURI: metaRes.pinataURL }
+      const contractCallParams = updateCoinURICall(updateParams);
+      
+      // Extract the needed parameters for writeContract
+      const writeParams = {
+        abi: (await contractCallParams).abi,
+        address: (await contractCallParams).address,
+        functionName: (await contractCallParams).functionName,
+        args: (await contractCallParams).args,
+        value: (await contractCallParams).value,
+        chainId: base.id,
+      };
+
+      writeContract(writeParams,{
+        onSuccess : (txHash)=>{
+          setStatus('done');
+        },
+        onError: (error) => {
+          console.error('Contract write error:', error);
+          setStatus('error');
+          // toast.error('Failed to deploy coin. Try again.');
+        }
+      })
       }
 
     } else {

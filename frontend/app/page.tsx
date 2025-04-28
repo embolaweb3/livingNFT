@@ -66,7 +66,6 @@ export default function Home() {
         platformReferrer: address as Address,
       };
 
-      console.log(coinParams)
       const contractCallParams = createCoinCall(coinParams);
       
       // Extract the needed parameters for writeContract
