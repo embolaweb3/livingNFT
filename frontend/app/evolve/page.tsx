@@ -6,6 +6,8 @@ import { generateImage } from '../utils/imageGen';
 import { Readable } from 'stream';
 import Navbar from '../components/Header';
 import { Address } from 'viem';
+import { base } from 'viem/chains';
+
 import { updateCoinURICall } from "@zoralabs/coins-sdk";
 import { useContractWrite, useSimulateContract } from "wagmi";
 import { useAccount, useWriteContract } from 'wagmi';
@@ -35,10 +37,12 @@ export default function Evolve() {
       return;
     }
 
-    const { imageBuffer } = await imageGenRes.json();
+    // read the image as ArrayBuffer
+    const arrayBuffer = await imageGenRes.arrayBuffer();
 
+    //  prepare FormData to upload to IPFS
     const fileData = new FormData();
-    fileData.append('file', new Blob([new Uint8Array(imageBuffer)]), 'evolved-image.png');
+    fileData.append('file', new Blob([arrayBuffer]), 'evolved-image.png');
 
     const uploadRes = await fetch('/api/upload-file', {
       method: 'POST',
@@ -72,16 +76,17 @@ export default function Evolve() {
       
       // Extract the needed parameters for writeContract
       const writeParams = {
-        abi: (await contractCallParams).abi,
-        address: (await contractCallParams).address,
-        functionName: (await contractCallParams).functionName,
-        args: (await contractCallParams).args,
-        value: (await contractCallParams).value,
+        abi: (contractCallParams).abi,
+        address: (contractCallParams).address,
+        functionName: (contractCallParams).functionName,
+        args: (contractCallParams).args,
+        value: (contractCallParams).value,
         chainId: base.id,
       };
 
       writeContract(writeParams,{
         onSuccess : (txHash)=>{
+          console.log(txHash)
           setStatus('done');
         },
         onError: (error) => {

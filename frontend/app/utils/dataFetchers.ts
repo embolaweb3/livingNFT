@@ -17,7 +17,7 @@ export async function getWeather(city = "Lagos"): Promise<string> {
     const res = await axios.get("https://api.openweathermap.org/data/2.5/weather", {
       params: {
         q: city,
-        appid: process.env.WEATHER_API_KEY,
+        appid: process.env.NEXT_PUBLIC_WEATHER_API_KEY,
       },
     });
   
