@@ -33,30 +33,35 @@ export default function Evolve() {
 
     const fileData = new FormData();
     fileData.append('file', new Blob([new Uint8Array(imageBuffer)]), 'evolved-image.png');
-    
-    const imageRes = await fetch('/api/upload-file', {
+
+    const uploadRes = await fetch('/api/upload-file', {
       method: 'POST',
       body: fileData,
     }).then(res => res.json());
 
-    if ('pinataURL' in imageRes) {
-        const metadata = {
-            name: `Evolved Coin`,
-            description: 'Updated with real-world data.',
-            image: imageRes.pinataURL,
-            properties: { weather, ethPrice, level }
-          };
-      
-          const metaRes = await fetch('/api/upload-json', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(metadata),
-          }).then(res => res.json());
-          
-          if ('pinataURL' in metaRes){
-            await updateCoinMetadata({ coin: coinAddress as Address, newURI: metaRes.pinataURL });
-            setStatus('done');
-          }
+    const imageRes = await uploadRes.json();
+
+  if (imageRes?.pinataURL) {
+    // 3. Now upload metadata
+    const metadata = {
+      name: `Evolved Coin`,
+      description: 'Updated with real-world data.',
+      image: imageRes.pinataURL,
+      properties: { weather, ethPrice, level }
+    };
+
+    const metaUpload = await fetch('/api/upload-json', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(metadata),
+    });
+
+    const metaRes = await metaUpload.json();
+
+    if (metaRes?.pinataURL) {
+      await updateCoinMetadata({ coin: coinAddress as Address, newURI: metaRes.pinataURL });
+      setStatus('done');
+    }
           
       } else {
         console.error('Upload failed:', imageRes.message);
