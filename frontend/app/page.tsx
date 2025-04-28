@@ -90,6 +90,8 @@ export default function Home() {
             hash: data,
             chainId: base.id,
           });
+
+          console.log("Transaction receipt:", receipt);
           // Get previous created coins
           const existingCreatedCoins = JSON.parse(
             localStorage.getItem("createdCoins") || "[]"
@@ -98,7 +100,7 @@ export default function Home() {
           // Add new created coin
           const updatedCreatedCoins = [
             ...existingCreatedCoins,
-            receipt.to as Address,
+            receipt.logs[0].address as Address,
           ];
 
           // Save back
