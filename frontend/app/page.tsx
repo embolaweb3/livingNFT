@@ -90,7 +90,7 @@ export default function Home() {
               <br />
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(data.contractAddress)
+                  navigator.clipboard.writeText(data)
                   toast.info('Address copied to clipboard!')
                 }}
                 className="text-blue-500 underline"
