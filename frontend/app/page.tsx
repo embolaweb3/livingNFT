@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useWriteContract } from 'wagmi';
 import { createCoinCall } from '@zoralabs/coins-sdk';
@@ -99,11 +99,11 @@ export default function Home() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(data);
-                  toast.info('Address copied to clipboard!');
+                  toast.info('Txhash copied to clipboard!');
                 }}
                 className="text-blue-500 underline"
               >
-                Copy Address
+                Copy Txhash
               </button>
             </div>
           );
@@ -126,26 +126,26 @@ export default function Home() {
       <Navbar />
       <div className="max-w-2xl mx-auto bg-white p-6 rounded shadow">
         <ConnectButton />
-        <h1 className="text-2xl font-bold mb-4">🚀 Create Living Coin</h1>
+        <h1 className="text-2xl text-gray-500 font-bold mb-4">🚀 Create Living Coin</h1>
         <input
           type="text"
           placeholder="Coin Name"
           value={name}
           onChange={e => setName(e.target.value)}
-          className="w-full p-2 border rounded mb-2"
+          className="w-full text-gray-400 p-2 border rounded mb-2"
         />
         <input
           type="text"
           placeholder="Symbol"
           value={symbol}
           onChange={e => setSymbol(e.target.value)}
-          className="w-full p-2 border rounded mb-2"
+          className="w-full text-gray-400 p-2 border rounded mb-2"
         />
         <textarea
           placeholder="Description"
           value={desc}
           onChange={e => setDesc(e.target.value)}
-          className="w-full p-2 border rounded mb-2"
+          className="w-full text-gray-400 p-2 border rounded mb-2"
         />
         <input
           type="file"

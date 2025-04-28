@@ -1,37 +1,36 @@
-"use client"
-import { useState } from 'react';
-import { waitForTransactionReceipt } from 'wagmi/actions';
-import { getWeather, getETHPriceUSD } from '../utils/dataFetchers';
-import { config } from '../utils/wagmiConfig';
-import Navbar from '../components/Header';
-import { Address } from 'viem';
-import { base } from 'viem/chains';
-
+"use client";
+import React, { useState } from "react";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { getWeather, getETHPriceUSD } from "../utils/dataFetchers";
+import { config } from "../utils/wagmiConfig";
+import Navbar from "../components/Header";
+import { Address } from "viem";
+import { toast } from "react-toastify";
+import { base } from "viem/chains";
 import { updateCoinURICall } from "@zoralabs/coins-sdk";
-import { useAccount, useWriteContract } from 'wagmi';
-
+import { useAccount, useWriteContract } from "wagmi";
 
 export default function Evolve() {
-  const [coinAddress, setCoinAddress] = useState('');
-  const [status, setStatus] = useState('idle');
+  const [coinAddress, setCoinAddress] = useState("");
+  const [status, setStatus] = useState("idle");
 
-    const { writeContract } = useWriteContract();
+  const { writeContract } = useWriteContract();
 
   const handleEvolve = async () => {
-    setStatus('evolving');
+    setStatus("evolving");
     const weather = await getWeather();
     const ethPrice = await getETHPriceUSD();
     const level = 2;
 
-    const imageGenRes = await fetch('/api/generate-image', {
-      method: 'POST',
-      headers: { 'Content-type': 'application/json' },
-      body: JSON.stringify({ weather, ethPrice, level })
-    })
+    const imageGenRes = await fetch("/api/generate-image", {
+      method: "POST",
+      headers: { "Content-type": "application/json" },
+      body: JSON.stringify({ weather, ethPrice, level }),
+    });
 
     if (!imageGenRes.ok) {
-      console.error('Image generation failed');
-      setStatus('idle');
+      console.error("Image generation failed");
+      setStatus("idle");
       return;
     }
 
@@ -40,81 +39,95 @@ export default function Evolve() {
 
     //  prepare FormData to upload to IPFS
     const fileData = new FormData();
-    fileData.append('file', new Blob([arrayBuffer]), 'evolved-image.png');
+    fileData.append("file", new Blob([arrayBuffer]), "evolved-image.png");
 
-    const uploadRes = await fetch('/api/upload-file', {
-      method: 'POST',
+    const uploadRes = await fetch("/api/upload-file", {
+      method: "POST",
       body: fileData,
-    }).then(res => res.json());
+    }).then((res) => res.json());
 
-    const imageRes = await uploadRes
+    const imageRes = await uploadRes;
 
     if (imageRes?.pinataURL) {
-
       const metadata = {
         name: `Evolved Coin`,
-        description: 'Updated with real-world data.',
+        description: "Updated with real-world data.",
         image: imageRes.pinataURL,
-        properties: { weather, ethPrice, level }
+        properties: { weather, ethPrice, level },
       };
 
-      const metaUpload = await fetch('/api/upload-json', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const metaUpload = await fetch("/api/upload-json", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(metadata),
       });
 
       const metaRes = await metaUpload.json();
 
       if (metaRes?.pinataURL) {
-
         // Define update parameters
-      const updateParams = { coin: coinAddress as Address, newURI: metaRes.pinataURL }
-      const contractCallParams = updateCoinURICall(updateParams);
-      
-      // Extract the needed parameters for writeContract
-      const writeParams = {
-        abi: (contractCallParams).abi,
-        address: (contractCallParams).address,
-        functionName: (contractCallParams).functionName,
-        args: (contractCallParams).args,
-        value: (contractCallParams).value,
-        chainId: base.id,
-      };
+        const updateParams = {
+          coin: coinAddress as Address,
+          newURI: metaRes.pinataURL,
+        };
+        const contractCallParams = updateCoinURICall(updateParams);
 
-      writeContract(writeParams,{
-        onSuccess : async(txHash)=>{
-          console.log(txHash)
-          setStatus('done');
-          const receipt = await waitForTransactionReceipt(config,{
-            hash: txHash,
-            chainId:  base.id,  
-          });
+        // Extract the needed parameters for writeContract
+        const writeParams = {
+          abi: contractCallParams.abi,
+          address: contractCallParams.address,
+          functionName: contractCallParams.functionName,
+          args: contractCallParams.args,
+          value: contractCallParams.value,
+          chainId: base.id,
+        };
 
-          // Get previous coins
-          const existingCoins = JSON.parse(
-            localStorage.getItem("evolvedCoins") || "[]"
-          ) as Address[];
+        writeContract(writeParams, {
+          onSuccess: async (txHash) => {
+            setStatus("done");
+            toast.success(
+              <div>
+                🚀 Coin Evolved!
+                <br />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(txHash);
+                    toast.info("TxHash copied to clipboard!");
+                  }}
+                  className="text-blue-500 underline"
+                >
+                  Copy Transaction Hash
+                </button>
+              </div>
+            );
+            const receipt = await waitForTransactionReceipt(config, {
+              hash: txHash,
+              chainId: base.id,
+            });
 
-          // Add new coin
-          const updatedCoins = [...existingCoins, receipt.to as Address];
+            // Get previous coins
+            const existingCoins = JSON.parse(
+              localStorage.getItem("evolvedCoins") || "[]"
+            ) as Address[];
 
-          // Save back
-          localStorage.setItem("evolvedCoins", JSON.stringify(updatedCoins));
-        },
-        onError: (error) => {
-          console.error('Contract write error:', error);
-          setStatus('error');
-          // toast.error('Failed to deploy coin. Try again.');
-        }
-      })
+            // Add new coin
+            const updatedCoins = [...existingCoins, receipt.to as Address];
+
+            // Save back
+            localStorage.setItem("evolvedCoins", JSON.stringify(updatedCoins));
+          },
+          onError: (error) => {
+            console.error("Contract write error:", error);
+            setStatus("error");
+            toast.error('Failed to evolve coin. Try again.');
+          },
+        });
       }
-
     } else {
-      console.error('Upload failed:', imageRes.message);
-      setStatus('idle');
+      console.error("Upload failed:", imageRes.message);
+      toast.error('Failed to evolve coin. Try again.');
+      setStatus("idle");
     }
-
   };
 
   return (
@@ -126,15 +139,15 @@ export default function Evolve() {
           type="text"
           placeholder="Coin Address"
           value={coinAddress}
-          onChange={e => setCoinAddress(e.target.value)}
+          onChange={(e) => setCoinAddress(e.target.value)}
           className="w-full p-2 border rounded mb-4"
         />
         <button
           onClick={handleEvolve}
-          disabled={status === 'evolving'}
+          disabled={status === "evolving"}
           className="w-full bg-green-600 text-white py-2 rounded"
         >
-          {status === 'evolving' ? 'Evolving...' : 'Update Metadata'}
+          {status === "evolving" ? "Evolving..." : "Update Metadata"}
         </button>
       </div>
     </main>

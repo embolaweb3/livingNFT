@@ -1,5 +1,6 @@
 import axios from 'axios'
 import * as dotenv from 'dotenv'
+import { getUserCity } from './getUserCity';
 dotenv.config()
 
 export async function getETHPriceUSD(): Promise<number> {
@@ -13,7 +14,14 @@ export async function getETHPriceUSD(): Promise<number> {
     return res.data.ethereum.usd;
   }
   
-export async function getWeather(city = "Lagos"): Promise<string> {
+  export async function getWeather(defaultCity = "Lagos"): Promise<string> {
+    let city = defaultCity;
+  
+    const userCity = await getUserCity();
+    if (userCity) {
+      city = userCity;
+    }
+  
     const res = await axios.get("https://api.openweathermap.org/data/2.5/weather", {
       params: {
         q: city,
@@ -22,7 +30,7 @@ export async function getWeather(city = "Lagos"): Promise<string> {
     });
   
     const weather = res.data.weather[0].main.toLowerCase();
-    return weather; // e.g., "rain", "clear", "clouds"
+    return weather;
   }
 
   export function getCurrentSeason(): string {
