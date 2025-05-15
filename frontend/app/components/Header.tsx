@@ -8,9 +8,9 @@ export default function Header() {
         <Link href="/">🌱 Living NFTs</Link>
       </div>
       <nav className="flex gap-4">
-        <Link href="/" className="text-gray-700 hover:underline">Home</Link>
-        <Link href="/evolve" className="text-gray-700 hover:underline">Evolve</Link>
-        <Link href="/gallery" className="text-gray-700 hover:underline">Gallery</Link>
+        <Link href="/" className="text-gray-400 hover:text-white transition-colors">Home</Link>
+        <Link href="/evolve" className="text-gray-400 hover:text-white transition-colors">Evolve</Link>
+        <Link href="/gallery" className="text-gray-400 hover:text-white transition-colors">Gallery</Link>
       </nav>
       <ConnectButton />
     </header>
