@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { fetchSingleCoin } from '../utils/fetchSingleCoin';
 import Navbar from '../components/Header';
 import { base } from "viem/chains";
+import { staticDemoCoins } from '../utils/demoCoins';
 
 interface Coin {
   name: string;
@@ -15,7 +16,7 @@ interface Coin {
 };
 
 
-async function fetchMetadataFromIPFS(ipfsUri: string) {
+export async function fetchMetadataFromIPFS(ipfsUri: string) {
   if (!ipfsUri.startsWith('ipfs://')) return null;
   const gatewayUrl = ipfsUri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
   const res = await fetch(gatewayUrl);
@@ -35,7 +36,13 @@ export default function Gallery() {
     const created = JSON.parse(localStorage.getItem('createdCoins') || '[]') as string[];
     const evolved = JSON.parse(localStorage.getItem('evolvedCoins') || '[]') as string[];
     const all = Array.from(new Set([...created, ...evolved]));
-    setCoinAddresses(all);
+      // Remove duplicates if user already has any of the static examples
+    const mergedAddresses = [
+      ...all,
+      ...staticDemoCoins.filter(addr => !all.includes(addr)),
+    ];
+
+    setCoinAddresses(mergedAddresses);
   }, []);
 
   useEffect(() => {
@@ -147,9 +154,9 @@ export default function Gallery() {
 
                 {meta?.properties && (
                   <div className="text-xs text-gray-500 w-full mt-2">
-                    <p><strong>Level:</strong> {meta.properties.level}</p>
-                    <p><strong>Weather:</strong> {meta.properties.weather}</p>
-                    <p><strong>ETH Price:</strong> {meta.properties.ethPrice}</p>
+                    <p><strong>🔢Level:</strong> {meta.properties.level}</p>
+                    <p><strong>🌤 Weather:</strong> {meta.properties.weather}</p>
+                    <p><strong>💰 ETH Price:</strong> {meta.properties.ethPrice}</p>
                   </div>
                 )}
 
