@@ -21,14 +21,20 @@ const tokens = [
   },
 ];
 
+interface ChartDataPoint {
+  time: string;
+  price: string;
+}
+
 export default function TradingInterface() {
   const [selectedToken, setSelectedToken] = useState(tokens[0]);
   const [price, setPrice] = useState("-");
   const [amount, setAmount] = useState("");
   const [isBuying, setIsBuying] = useState(true);
-  const [chartData, setChartData] = useState([]);
+  const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const { address } = useAccount();
 
+  
   useEffect(() => {
     async function fetchPrice() {
       const mockPrice = Math.random() * 5 + 1;
@@ -59,7 +65,7 @@ export default function TradingInterface() {
 
       <Card className="max-w-xl mx-auto bg-gray-900">
         <CardContent className="p-6 grid gap-4">
-          <Select onValueChange={(val) => setSelectedToken(tokens.find(t => t.symbol === val))}>
+          <Select onValueChange={(val) => setSelectedToken(tokens.find(t => t.symbol === val)!)}>
             <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
               {selectedToken.symbol}
             </SelectTrigger>
@@ -90,26 +96,26 @@ export default function TradingInterface() {
             onChange={(e) => setAmount(e.target.value)}
           />
 
-          <div className="flex gap-4">
-            <Button
-              className="w-full bg-green-600 hover:bg-green-700"
-              onClick={() => {
-                setIsBuying(true);
-                handleTrade();
-              }}
-            >
-              Buy
-            </Button>
-            <Button
-              className="w-full bg-red-600 hover:bg-red-700"
-              onClick={() => {
-                setIsBuying(false);
-                handleTrade();
-              }}
-            >
-              Sell
-            </Button>
-          </div>
+       <div className="flex flex-col sm:flex-row gap-4">
+  <Button
+    className="sm:w-1/2 w-full bg-green-600 hover:bg-green-700 text-white font-semibold"
+    onClick={() => {
+      setIsBuying(true);
+      handleTrade();
+    }}
+  >
+    Buy
+  </Button>
+  <Button
+    className="sm:w-1/2 w-full bg-red-600 hover:bg-red-700 text-white font-semibold"
+    onClick={() => {
+      setIsBuying(false);
+      handleTrade();
+    }}
+  >
+    Sell
+  </Button>
+</div>
         </CardContent>
       </Card>
     </main>

@@ -10,6 +10,7 @@ import { base } from "viem/chains";
 import Navbar from "./components/Header";
 import { config } from "./utils/wagmiConfig";
 import { toast } from "react-toastify";
+import TradingInterface from "./components/TradingInterface";
 
 export default function Home() {
   const { address } = useAccount();
@@ -138,7 +139,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-6 bg-gray-100">
+    <main className="min-h-screen p-6 bg-gray-900">
       <Navbar />
       <div className="max-w-2xl mx-auto bg-white p-6 rounded shadow">
         <ConnectButton />
@@ -193,6 +194,10 @@ export default function Home() {
           </p>
         )}
       </div>
+    <div className="max-w-5xl mx-auto mt-10">
+  <h2 className="text-xl font-bold text-gray-600 mb-4">📊 Live Token Trading</h2>
+  <TradingInterface />
+</div>
     </main>
   );
 }

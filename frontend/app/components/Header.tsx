@@ -3,8 +3,8 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 
 export default function Header() {
   return (
-    <header className="flex items-center justify-between p-4 bg-white shadow-md">
-      <div className="text-xl text-gray-800 font-bold">
+    <header className="flex items-center justify-between p-4 bg-gray-800/80 backdrop-blur-sm shadow-lg shadow-black/30 border-b border-gray-700/50">
+      <div className="text-xl text-gray-200 font-medium tracking-tight font-bold">
         <Link href="/">🌱 Living NFTs</Link>
       </div>
       <nav className="flex gap-4">
