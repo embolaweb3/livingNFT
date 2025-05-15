@@ -141,7 +141,7 @@ export default function Home() {
   return (
     <main className="min-h-screen p-6 bg-gray-900">
       <Navbar />
-     <div className="max-w-2xl mx-auto bg-gray-800/50 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-gray-700/30">
+     <div className="max-w-2xl mt-3  mx-auto bg-gray-800/50 backdrop-blur-sm p-8 rounded-xl shadow-lg border border-gray-700/30">
   <h1 className="text-3xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
     🚀 Create Living Coin
   </h1>
