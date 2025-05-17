@@ -4,6 +4,7 @@ import { fetchSingleCoin } from '../utils/fetchSingleCoin';
 import Navbar from '../components/Header';
 import { base } from "viem/chains";
 import { staticDemoCoins } from '../utils/demoCoins';
+import { fetchMetadataFromIPFS } from '../utils/fetchMetadataFromIPFS';
 
 interface Coin {
   name: string;
@@ -16,13 +17,6 @@ interface Coin {
 };
 
 
-export async function fetchMetadataFromIPFS(ipfsUri: string) {
-  if (!ipfsUri.startsWith('ipfs://')) return null;
-  const gatewayUrl = ipfsUri.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/');
-  const res = await fetch(gatewayUrl);
-  if (!res.ok) throw new Error('Failed to fetch metadata from IPFS');
-  return await res.json();
-}
 
 export default function Gallery() {
   const [coinAddresses, setCoinAddresses] = useState<string[]>([]);
@@ -42,7 +36,7 @@ export default function Gallery() {
       ...staticDemoCoins.filter(addr => !all.includes(addr)),
     ];
 
-    setCoinAddresses(mergedAddresses);
+    setCoinAddresses(evolved);
   }, []);
 
   useEffect(() => {
@@ -104,7 +98,7 @@ export default function Gallery() {
   };
 
   return (
-    <main className="min-h-screen bg-gray-100 p-6">
+    <main className="min-h-screen p-6 bg-gray-900">
       <Navbar />
       <div className="max-w-7xl mx-auto">
         <h1 className="text-3xl text-gray-700 font-bold mb-6 text-center">🖼 Your Living Coins</h1>
@@ -132,43 +126,84 @@ export default function Gallery() {
           <p className="text-center text-gray-500">No coins found. Create or evolve a coin first!</p>
         )}
 
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-          {coins.map((coin) => {
-            const meta = metadata[coin.address];
+       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+  {coins.map((coin) => {
+    const meta = metadata[coin.address];
 
-            return (
-              <div key={coin.address} className="bg-white rounded shadow p-4 flex flex-col items-center">
-                <img
-                  src={
-                    meta?.image
-                      ? meta.image.startsWith('ipfs://')
-                        ? meta.image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
-                        : meta.image
-                      : '/fallback.png'
-                  }
-                  alt={coin.name}
-                  className="w-full h-48 object-cover rounded mb-4"
-                />
-                <h2 className="text-xl font-semibold text-center">{meta?.name || coin.name} ({coin.symbol})</h2>
-                <p className="text-gray-600 text-center text-sm mb-2">{meta?.description || coin.description}</p>
+    return (
+      <div 
+        key={coin.address} 
+        className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700 hover:border-indigo-500 transition-all duration-300 hover:shadow-indigo-500/20"
+      >
+        <div className="p-5 flex flex-col h-full">
+          <div className="relative overflow-hidden rounded-lg mb-4">
+            <img
+              src={
+                meta?.image
+                  ? meta.image.startsWith('ipfs://')
+                    ? meta.image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+                    : meta.image
+                  : '/fallback.png'
+              }
+              alt={meta?.name || coin.name}
+              className="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-500"
+            />
+            <div className="absolute bottom-2 left-2 bg-indigo-600/90 text-white text-xs px-2 py-1 rounded">
+              {coin.symbol}
+            </div>
+          </div>
 
-                {meta?.properties && (
-                  <div className="text-xs text-gray-500 w-full mt-2">
-                    <p><strong>🔢Level:</strong> {meta.properties.level}</p>
-                    <p><strong>🌤 Weather:</strong> {meta.properties.weather}</p>
-                    <p><strong>💰 ETH Price:</strong> {meta.properties.ethPrice}</p>
-                  </div>
-                )}
+          <h2 className="text-xl font-bold text-white mb-2 line-clamp-1">
+            {meta?.name || coin.name}
+          </h2>
+          
+          <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+            {meta?.description || coin.description}
+          </p>
 
-                <div className="text-xs text-gray-400 w-full mt-2 border-t pt-2">
-                  <p><strong>Creator:</strong> {coin.creatorAddress}</p>
-                  <p><strong>Created:</strong> {new Date(coin.createdAt).toLocaleString()}</p>
-                  <p><strong>Holders:</strong> {coin.uniqueHolders}</p>
-                </div>
+          {meta?.properties && (
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <div className="bg-gray-800/50 rounded p-2">
+                <p className="text-indigo-400 text-xs font-medium">Level</p>
+                <p className="text-white text-sm">{meta.properties.level}</p>
               </div>
-            );
-          })}
+              <div className="bg-gray-800/50 rounded p-2">
+                <p className="text-indigo-400 text-xs font-medium">Weather</p>
+                <p className="text-white text-sm">{meta.properties.weather}</p>
+              </div>
+              <div className="bg-gray-800/50 rounded p-2 col-span-2">
+                <p className="text-indigo-400 text-xs font-medium">ETH Price</p>
+                <p className="text-white text-sm font-mono">{meta.properties.ethPrice} ETH</p>
+              </div>
+            </div>
+          )}
+
+          <div className="mt-auto pt-4 border-t border-gray-700">
+            <div className="flex justify-between text-xs text-gray-400">
+              <div>
+                <p className="font-medium text-gray-300">Creator</p>
+                <p className="truncate max-w-[120px]">{coin.creatorAddress}</p>
+              </div>
+              <div className="text-right">
+                <p className="font-medium text-gray-300">Created</p>
+                <p>{new Date(coin.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-gray-400">
+                <span className="font-medium text-gray-300 mr-1">Holders:</span>
+                {coin.uniqueHolders}
+              </span>
+              <button className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-full transition-colors">
+                View
+              </button>
+            </div>
+          </div>
         </div>
+      </div>
+    );
+  })}
+</div>
       </div>
     </main>
   );

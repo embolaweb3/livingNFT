@@ -1,6 +1,6 @@
-// utils/demoCoins.ts
 export const staticDemoCoins = [
-  "0x1234...abcd", // Replace with actual token addresses
-  "0x5678...efgh",
-  "0x9abc...ijkl",
+  "0xf0b3a233c1AC28F5367217015eEd71441dbEA30b", 
+  "0x4D49E1db19A8E7Ac6c214E25Caaa018B20f0e754",
+  "0x5c9a4fe295D7775A87438c0Dc816DD0543f84e62",
+  "0x27de625a5004a9a3c64eddd3649e5f6e527bfe01"
 ];

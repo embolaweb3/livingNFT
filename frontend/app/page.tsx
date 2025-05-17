@@ -1,7 +1,7 @@
 
 "use client";
 import { waitForTransactionReceipt } from "wagmi/actions";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useAccount, useWriteContract } from "wagmi";
 import { createCoinCall } from "@zoralabs/coins-sdk";
@@ -11,6 +11,21 @@ import Navbar from "./components/Header";
 import { config } from "./utils/wagmiConfig";
 import { toast } from "react-toastify";
 import TradingInterface from "./components/TradingInterface";
+import { staticDemoCoins } from "./utils/demoCoins";
+import { fetchSingleCoin } from './utils/fetchSingleCoin';
+import { fetchMetadataFromIPFS } from "./utils/fetchMetadataFromIPFS";
+
+
+interface Coin {
+  name: string;
+  symbol: string;
+  description: string;
+  address: string;
+  tokenUri?: string;
+  creatorAddress: string;
+
+};
+
 
 export default function Home() {
   const { address } = useAccount();
@@ -20,8 +35,56 @@ export default function Home() {
   const [image, setImage] = useState<File | null>(null);
   const [ipfsUri, setIpfsUri] = useState<string>("");
   const [status, setStatus] = useState("idle");
+    const [coins, setCoins] = useState<any[]>([]);
+  const [coinAddresses, setCoinAddresses] = useState<string[]>([]);
+    const [loading, setLoading] = useState(false);
+      const [error, setError] = useState('');
+  const [metadata, setMetadata] = useState<Record<string, any>>({});
+    
+  
+
 
   const { writeContract } = useWriteContract();
+
+    useEffect(() => {
+      setCoinAddresses(staticDemoCoins);
+    }, []);
+
+     useEffect(() => {
+        const fetchCoins = async () => {
+          setLoading(true);
+          try {
+            const promises = coinAddresses.map(address =>
+              fetchSingleCoin(address, base.id).then(res => res.data?.zora20Token)
+            );
+            const results = await Promise.all(promises);
+            const validCoins = results.filter(Boolean);
+    
+            setCoins(validCoins);
+    
+            // Fetch metadata for each
+            for (const coin of validCoins as Coin[]) {
+              if (coin?.tokenUri) {
+                try {
+                  const meta = await fetchMetadataFromIPFS(coin.tokenUri);
+                  setMetadata(prev => ({ ...prev, [coin.address]: meta }));
+                } catch (e) {
+                  console.error('Failed fetching metadata for', coin.address);
+                }
+              }
+            }
+          } catch (err) {
+            console.error(err);
+            setError('Failed to load coins.');
+          }
+          setLoading(false);
+        };
+    
+        if (coinAddresses.length > 0) {
+          fetchCoins();
+        }
+      }, [coinAddresses]);
+
 
   const handleSubmit = async () => {
     if (!address || !name || !symbol || !desc || !image) return;
@@ -110,21 +173,25 @@ export default function Home() {
             JSON.stringify(updatedCreatedCoins)
           );
 
-          toast.success(
-            <div>
-              🚀 Coin created!
-              <br />
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(data);
-                  toast.info("Txhash copied to clipboard!");
-                }}
-                className="text-blue-500 underline"
-              >
-                Copy Txhash
-              </button>
-            </div>
-          );
+         toast.success(
+  <div>
+    🚀 Coin created!
+    <br />
+    <button
+      onClick={() => {
+        navigator.clipboard.writeText(receipt.logs[0].address);
+        toast.info("Coin Address copied to clipboard!");
+      }}
+      className="text-blue-500 underline"
+    >
+      Copy Coin Address and proceed to evolve page
+    </button>
+  </div>,
+  {
+    autoClose: false, 
+    closeOnClick: false, 
+  }
+);
         },
         onError: (error) => {
           console.error("Contract write error:", error);
@@ -151,7 +218,7 @@ export default function Home() {
       <label className="block text-gray-300 mb-1 text-sm font-medium">Coin Name</label>
       <input
         type="text"
-        placeholder="e.g. Ethereum Evolved"
+        placeholder="e.g. Zora Evolved"
         value={name}
         onChange={(e) => setName(e.target.value)}
         className="w-full bg-gray-700/50 border border-gray-600 rounded-lg px-4 py-3 text-gray-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -243,6 +310,97 @@ export default function Home() {
       </div>
     )}
   </div>
+</div>
+
+<div className="space-y-8">
+  {!coins ? (
+    <div className="flex justify-center items-center h-64">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+    </div>
+  ) : (
+    <>
+      <h1 className="text-3xl font-bold mt-4 text-white text-center mb-8">Some Evolved Tokens</h1>
+      
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {coins.map((coin) => {
+          const meta = metadata[coin.address];
+
+          return (
+            <div 
+              key={coin.address} 
+              className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700 hover:border-indigo-500 transition-all duration-300 hover:shadow-indigo-500/20"
+            >
+              <div className="p-5 flex flex-col h-full">
+                <div className="relative overflow-hidden rounded-lg mb-4">
+                  <img
+                    src={
+                      meta?.image
+                        ? meta.image.startsWith('ipfs://')
+                          ? meta.image.replace('ipfs://', 'https://gateway.pinata.cloud/ipfs/')
+                          : meta.image
+                        : '/fallback.png'
+                    }
+                    alt={meta?.name || coin.name}
+                    className="w-full h-48 object-cover rounded-lg hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute bottom-2 left-2 bg-indigo-600/90 text-white text-xs px-2 py-1 rounded">
+                    {coin.symbol}
+                  </div>
+                </div>
+
+                <h2 className="text-xl font-bold text-white mb-2 line-clamp-1">
+                  {meta?.name || coin.name}
+                </h2>
+                
+                <p className="text-gray-300 text-sm mb-4 line-clamp-2">
+                  {meta?.description || coin.description}
+                </p>
+
+                {meta?.properties && (
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="bg-gray-800/50 rounded p-2">
+                      <p className="text-indigo-400 text-xs font-medium">Level</p>
+                      <p className="text-white text-sm">{meta.properties.level}</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded p-2">
+                      <p className="text-indigo-400 text-xs font-medium">Weather</p>
+                      <p className="text-white text-sm">{meta.properties.weather}</p>
+                    </div>
+                    <div className="bg-gray-800/50 rounded p-2 col-span-2">
+                      <p className="text-indigo-400 text-xs font-medium">ETH Price</p>
+                      <p className="text-white text-sm font-mono">{meta.properties.ethPrice} ETH</p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-auto pt-4 border-t border-gray-700">
+                  <div className="flex justify-between text-xs text-gray-400">
+                    <div>
+                      <p className="font-medium text-gray-300">Creator</p>
+                      <p className="truncate max-w-[120px]">{coin.creatorAddress}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-medium text-gray-300">Created</p>
+                      <p>{new Date(coin.createdAt).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-xs text-gray-400">
+                      <span className="font-medium text-gray-300 mr-1">Holders:</span>
+                      {coin.uniqueHolders}
+                    </span>
+                    <button className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-full transition-colors">
+                      View
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  )}
 </div>
     <div className="max-w-5xl mx-auto mt-10">
   <h2 className="text-xl font-bold text-gray-600 mb-4">📊 Live Token Trading</h2>

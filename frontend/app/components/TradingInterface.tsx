@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useMemo } from 'react';
 import { tradeCoinCall, getCoinsTopVolume24h } from "@zoralabs/coins-sdk";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract } from 'wagmi';
 import { Address, parseEther, formatEther } from "viem";
 import { base } from "viem/chains";
 import { CardContent,Card } from '@/components/ui/card';
@@ -10,6 +10,8 @@ import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { SelectTrigger,SelectItem,SelectContent } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Area } from 'recharts';
+import { toast } from "react-toastify";
+
 
 // ERC20 ABI for balance checking
 const erc20Abi = [
@@ -44,24 +46,26 @@ export default function TradingInterface() {
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [price, setPrice] = useState("0.00");
   const [amount, setAmount] = useState("");
+  const [priceInETH, setPriceInETH] = useState(0); 
+  const [priceInUSD, setPriceInUSD] = useState(0); 
+  const [userBalance, setUserBalance] = useState("0");
   const [chartData, setChartData] = useState<{ time: string; price: string }[]>([]);
   const [isLoadingTokens, setIsLoadingTokens] = useState(true);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [priceChange, setPriceChange] = useState(0);
 
-  // Fetch top 5 volume coins
+  // Fetch top 10 volume coins
   useEffect(() => {
     const fetchTopCoins = async () => {
       try {
         setIsLoadingTokens(true);
-        const response = await getCoinsTopVolume24h({ count: 5 });
-        const fetchedTokens = response.data?.exploreList?.edges?.map((edge: any) => ({
-          symbol: edge.node.symbol,
-          address: edge.node.address,
-          name: edge.node.name,
-          volume24h: edge.node.volume24h,
-          marketCap: edge.node.marketCap
-        })) || [];
+        const response = await getCoinsTopVolume24h({ count: 10 });
+      const fetchedTokens = response.data?.exploreList?.edges?.map((edge: any) => ({
+  symbol: edge.node.symbol,
+  address: edge.node.address,
+  name: edge.node.name,
+  volume24h: edge.node.volume24h,
+  coingeckoId: edge.node.name.toLowerCase().replace(/\s+/g, '-') // Auto-generate ID
+})) || [];
         
         setTokens(fetchedTokens);
         if (fetchedTokens.length > 0) {
@@ -77,47 +81,102 @@ export default function TradingInterface() {
     fetchTopCoins();
   }, []);
 
+  const fetchRealPrice = async (token: Token) => {
+  // Generate CoinGecko ID from token name
+  const coingeckoId = token.name
+    .toLowerCase()
+    .replace(/\s+/g, '-')    // Replace spaces with -
+    .replace(/[^a-z0-9-]/g, ''); // Remove special chars
 
+  try {
+    console.log(coingeckoId)
+    const response = await fetch(
+      `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd&include_24hr_change=true`
+    );
+    
+    if (!response.ok) throw new Error('Failed to fetch price');
+    
+    const data = await response.json();
+    console.log(data,'data')
+    // Handle case where token exists but has no price data yet
+    if (!data[coingeckoId]) {
+      toast.error(`${token.name} has no price feed, select another one`)
+      return { price: "0.00", change: 0 };
+    }
 
-  // // Mock price feed with change calculation - replace with real data
-  // useEffect(() => {
-  //   if (!selectedToken) return;
+    return {
+      price: data[coingeckoId].usd || "0.00",
+      change: data[coingeckoId].usd_24h_change?.toFixed(2) || 0
+    };
+  } catch (error) {
+    console.error(`Price fetch failed for ${token.name}:`, error);
+    return { price: "0.00", change: 0 };
+  }
+};
 
-  //   let previousPrice = parseFloat(price);
-  //   const interval = setInterval(() => {
-  //     const newPrice = (Math.random() * 5 + 1).toFixed(2);
-  //     const numericNewPrice = parseFloat(newPrice);
+useEffect(() => {
+  if (!selectedToken) return;
+
+  const updatePrice = async () => {
+    const { price, change } = await fetchRealPrice(selectedToken);
+    console.log(price,'aa')
+    setPrice(price);
+    setPriceChange(change);
+    
+    setChartData(prev => [...prev.slice(-29), { // Keep last 30 points
+      time: new Date().toLocaleTimeString(),
+      price: price
       
-  //     // Calculate price change percentage
-  //     const change = previousPrice !== 0 
-  //       ? ((numericNewPrice - previousPrice) / previousPrice) * 100 
-  //       : 0;
-      
-  //     setPriceChange(parseFloat(change.toFixed(2)));
-  //     setPrice(newPrice);
-  //     previousPrice = numericNewPrice;
-      
-  //     setChartData(prev => {
-  //       const newData = [...prev];
-  //       if (newData.length >= 10) newData.shift();
-  //       return [...newData, { 
-  //         time: new Date().toLocaleTimeString(), 
-  //         price: newPrice 
-  //       }];
-  //     });
-  //   }, 3000);
+    }]);
 
-  //   return () => clearInterval(interval);
-  // }, [selectedToken]);
+      const coingeckoId = selectedToken.name.toLowerCase().replace(/\s+/g, '-');
+        const cgResponse = await fetch(
+          `https://api.coingecko.com/api/v3/simple/price?ids=${coingeckoId}&vs_currencies=usd,eth`
+        );
+        const cgData = await cgResponse.json();
+        
+        if (cgData[coingeckoId]) {
+          setPriceInETH(cgData[coingeckoId].eth || 0);
+          setPriceInUSD(cgData[coingeckoId].usd || 0);
+        }
+  };
 
+  // First update immediately
+  updatePrice(); 
   
+  // Then update every 30 seconds
+  const interval = setInterval(updatePrice, 30000);
+  return () => clearInterval(interval);
+}, [selectedToken]);
+ 
+
+  //  Fetch user token balance
+  const { data: tokenBalance, refetch: refetchBalance } = useReadContract({
+    address: selectedToken?.address,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [address!]
+  })as {
+  data: bigint | undefined;
+  refetch: () => void;
+};;
+
+    const { ethValue, usdValue } = useMemo(() => {
+    const tokenAmount = parseFloat(amount) || 0;
+    return {
+      ethValue: (tokenAmount * priceInETH).toFixed(6),
+      usdValue: (tokenAmount * priceInUSD)
+    };
+  }, [amount, priceInETH, priceInUSD]);
+
   // Trade functions
   const { 
     writeContract: buy, 
     data: buyHash,
     isPending: isBuyPending,
     error: buyError,
-    reset: resetBuy
+    reset: resetBuy,
+    isSuccess : buySuccess
   } = useWriteContract();
 
   const { 
@@ -125,23 +184,41 @@ export default function TradingInterface() {
     data: sellHash,
     isPending: isSellPending,
     error: sellError,
-    reset: resetSell
+    reset: resetSell,
+    isSuccess : sellSuccess
   } = useWriteContract();
 
   // Transaction receipts
-  const { isLoading: isBuyConfirming } = useWaitForTransactionReceipt({ hash: buyHash });
-  const { isLoading: isSellConfirming } = useWaitForTransactionReceipt({ hash: sellHash });
+  const { isLoading: isBuyConfirming,isSuccess: isBuyConfirmed  } = useWaitForTransactionReceipt({ hash: buyHash });
+  const { isLoading: isSellConfirming, isSuccess: isSellConfirmed  } = useWaitForTransactionReceipt({ hash: sellHash });
+
+  
+  useEffect(() => {
+  if (isBuyConfirmed) {
+    toast.success('Coin bought successfully');
+    resetBuy(); // Reset the buy state after showing toast
+    refetchBalance();
+  }
+}, [isBuyConfirmed]);
+
+useEffect(() => {
+  if (isSellConfirmed) {
+    toast.success('Coin sold successfully');
+    resetSell(); // Reset the sell state after showing toast
+    refetchBalance();
+  }
+}, [isSellConfirmed]);
 
    const handleTrade = (direction: "buy" | "sell") => {
-    if (!address) return alert("Connect wallet first");
-    if (!amount || isNaN(parseFloat(amount))) return alert("Invalid amount");
+    if (!address) return toast.warning("Connect wallet first");
+    if (!amount || isNaN(parseFloat(amount))) return toast.error("Invalid amount");
 
     const tradeConfig = {
       direction,
       target: selectedToken!.address,
       args: {
         recipient: address,
-        orderSize: parseEther(amount),
+        orderSize: parseEther(ethValue),
         minAmountOut: BigInt(0),
         tradeReferrer: "0x0000000000000000000000000000000000000000" as Address,
       }
@@ -149,48 +226,15 @@ export default function TradingInterface() {
 
     const params = {
       ...tradeCoinCall(tradeConfig),
-      value: direction === "buy" ? parseEther(amount) : undefined,
+      value: direction === "buy" ? parseEther(ethValue) : undefined,
       chainId: base.id
     };
 
     direction === "buy" ? buy(params) : sell(params);
+    refetchBalance()
   };
 
  
-
-//   const { 
-//     writeContract: buy, 
-//     status: buyStatus,
-//     reset: resetBuy 
-//   } = useWriteContract(buyConfig);
-
-//   // Sell Configuration
-//   const { config: sellConfig } = usePrepareContractWrite({
-//     ...tradeCoinCall({
-//       direction: "sell" as const,
-//       target: selectedToken!.address as Address,
-//       args: {
-//         recipient: address!,
-//         orderSize: parseEther(amount || "0"),
-//         minAmountOut: BigInt(0),
-//         tradeReferrer: "0x0000000000000000000000000000000000000000" as Address,
-//       }
-//     }),
-//     enabled: !!address && parseFloat(amount) > 0
-//   });
-
-//   const { 
-//     writeContract: sell, 
-//     status: sellStatus,
-//     reset: resetSell 
-//   } = useWriteContract(sellConfig);
-
-//   const handleTrade = (direction: 'buy' | 'sell') => {
-//     if (!address) return alert("Connect wallet first");
-//     if (!amount || isNaN(parseFloat(amount))) return alert("Invalid amount");
-
-//     direction === 'buy' ? buy?.() : sell?.();
-//   };
 
   if (isLoadingTokens) {
     return (
@@ -239,14 +283,51 @@ export default function TradingInterface() {
                   ))}
                 </SelectContent>
               </Select>
+
+              
+        {/* Amount Input */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <label>Amount ({selectedToken?.symbol})</label>
+            <span className="text-sm text-gray-500">
+              {/* Balance: {userBalance} */}
+            </span>
+          </div>
+          
+          {/* <Input
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="0.0"
+          /> */}
+          
+          <div className="text-sm text-gray-500">
+            ≈ {ethValue} ETH (${usdValue})
+          </div>
+        </div>
             </div>
 
             {/* Price Display */}
-            {selectedToken && (
+           {selectedToken && (
               <>
                 <div className="flex justify-between items-center p-3 bg-gray-800/50 rounded-lg border border-gray-700/50">
-                  <span className="text-gray-400 font-medium">Live Price</span>
-                  <span className="text-2xl font-bold text-green-400">${price}</span>
+                  <div>
+                    <span className="text-gray-400 font-medium">Live Price</span>
+                    {tokenBalance !== undefined && (
+                      <div className="text-xs text-gray-500">
+                        Balance: {formatEther(tokenBalance).slice(0, 6)} {selectedToken.symbol}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-bold text-green-400">${price}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      priceChange >= 0 
+                        ? 'bg-green-900/30 text-green-400' 
+                        : 'bg-red-900/30 text-red-400'
+                    }`}>
+                      {priceChange >= 0 ? '↑' : '↓'} {Math.abs(priceChange)}%
+                    </span>
+                  </div>
                 </div>
 
                 {/* Chart */}
